@@ -16,6 +16,8 @@ METRICS = [
     ("Total DB queries", "total_queries", "{:,.0f}"),
     ("Idle DB queries", "idle_queries", "{:,.0f}"),
     ("Idle server CPU time", "idle_cpu_s", "{:.3f} s"),
+    ("Estimated energy (load phase)", "energy_wh", "{:.3f} Wh"),
+    ("Estimated CO₂ (load phase)", "co2_g", "{:.3f} g"),
 ]
 
 
@@ -40,6 +42,8 @@ def main():
         "| --- | ---: | ---: | ---: |",
     ]
     for name, key, fmt in METRICS:
+        if key not in b or key not in a:
+            continue
         lines.append(f"| {name} | {fmt.format(b[key])} | {fmt.format(a[key])} | {change(b[key], a[key])} |")
 
     lines += [
@@ -52,7 +56,10 @@ def main():
         lines.append(f"| `{e}` | {be['queries_per_request']:,.1f} → {ae['queries_per_request']:,.1f} | "
                      f"{be['avg_server_ms']:,.1f} → {ae['avg_server_ms']:,.1f} |")
 
-    lines += ["", "Runtime and CPU time are proxies for energy use; query counts are exact.", ""]
+    lines += ["", "Runtime and CPU time are proxies for energy use; query counts are exact."]
+    if "energy_wh" in b and "energy_wh" in a:
+        lines.append("Energy and CO₂ are codecarbon estimates for the whole machine, not measured values.")
+    lines.append("")
     if a["errors"]:
         lines.insert(2, f"**Warning: {a['errors']} failed requests in '{after['label']}'.**\n")
 

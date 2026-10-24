@@ -44,7 +44,30 @@ def parse_args():
     p.add_argument("--idle", type=float, default=10, help="idle window in seconds (default: 10)")
     p.add_argument("--port", type=int, default=5077)
     p.add_argument("--out-dir", type=Path, default=HERE / "results")
+    p.add_argument("--energy", action=argparse.BooleanOptionalAction, default=True,
+                   help="estimate energy and CO2 of the load phase with codecarbon (default: on)")
+    p.add_argument("--country", default="USA", help="ISO country code of the electricity grid (default: USA)")
+    p.add_argument("--region", default="california", help="grid region within the country (default: california)")
     return p.parse_args()
+
+
+def make_energy_tracker(args):
+    """Offline codecarbon tracker: no network calls, whole-machine CPU and RAM estimate."""
+    from codecarbon import OfflineEmissionsTracker
+    return OfflineEmissionsTracker(
+        country_iso_code=args.country, region=args.region, tracking_mode="machine",
+        measure_power_secs=1, save_to_file=False, log_level="error",
+    )
+
+
+def warm_up_energy_tracker(args):
+    # codecarbon detects the hardware on first use, which takes several
+    # seconds; do that once here so it is not counted in the first run.
+    tracker = make_energy_tracker(args)
+    tracker.start()
+    time.sleep(1)
+    tracker.stop()
+    return tracker.final_emissions_data.cpu_model
 
 
 def get_json(base, path, method="GET"):
@@ -95,6 +118,9 @@ def run_once(args, python, run_no):
         # --- Load phase -----------------------------------------------------
         get_json(base, "/stats/reset", "POST")
         per_endpoint = {e: {"requests": 0, "queries": 0, "server_ms": 0.0, "errors": 0} for e in ENDPOINTS}
+        tracker = make_energy_tracker(args) if args.energy else None
+        if tracker:
+            tracker.start()
         cpu_start = cpu_seconds(proc)
         t_start = time.perf_counter()
 
@@ -111,6 +137,12 @@ def run_once(args, python, run_no):
 
         runtime = time.perf_counter() - t_start
         cpu = cpu_seconds(proc) - cpu_start
+        energy = None
+        if tracker:
+            tracker.stop()
+            data = tracker.final_emissions_data
+            energy = {"energy_wh": data.energy_consumed * 1000, "co2_g": data.emissions * 1000,
+                      "avg_cpu_power_w": data.cpu_power}
         total_queries = get_json(base, "/stats/query-count")["total_queries"]
 
         # --- Idle phase: no requests, count any background work --------------
@@ -129,9 +161,11 @@ def run_once(args, python, run_no):
     errors = sum(s["errors"] for s in per_endpoint.values())
     print(f"  run {run_no}: {runtime:6.2f} s runtime, {cpu:6.2f} s server CPU, "
           f"{total_queries:,} queries, {idle_queries} idle queries"
+          + (f", ~{energy['energy_wh']:.3f} Wh" if energy else "")
           + (f", {errors} ERRORS" if errors else ""))
 
     return {
+        **(energy or {}),
         "runtime_s": runtime,
         "server_cpu_s": cpu,
         "total_queries": total_queries,
@@ -160,6 +194,8 @@ def summarize(runs):
     summary = {k: median_of(runs, k) for k in
                ["runtime_s", "server_cpu_s", "total_queries", "request_queries",
                 "background_queries", "idle_queries", "idle_cpu_s"]}
+    if "energy_wh" in runs[0]:
+        summary.update({k: median_of(runs, k) for k in ["energy_wh", "co2_g", "avg_cpu_power_w"]})
     summary["errors"] = sum(r["errors"] for r in runs)
     summary["endpoints"] = {
         e: {k: statistics.median(r["endpoints"][e][k] for r in runs) for k in runs[0]["endpoints"][e]}
@@ -172,7 +208,8 @@ def git_info(app_dir):
     def git(*cmd):
         return subprocess.run(["git", *cmd], cwd=app_dir, capture_output=True, text=True).stdout.strip()
     return {
-        "commit": git("rev-parse", "--short", "HEAD") or None,
+        # Last commit that touched the app, so unrelated commits don't change it.
+        "commit": git("log", "-1", "--format=%h", "--", ".") or None,
         "uncommitted_changes": bool(git("status", "--porcelain", "--", ".")),
     }
 
@@ -204,8 +241,23 @@ def write_markdown(path, result):
         f"| Idle DB queries ({cfg['idle_s']:g} s, no requests) | {s['idle_queries']:,.0f} |",
         f"| Idle server CPU time | {s['idle_cpu_s']:.3f} s |",
         f"| Failed requests | {s['errors']} |",
+    ]
+    energy = result["config"].get("energy")
+    if energy:
+        lines += [
+            f"| Estimated energy, load phase | {s['energy_wh']:.3f} Wh |",
+            f"| Estimated CO₂, load phase ({energy['region']}, {energy['country']} grid) | {s['co2_g']:.3f} g |",
+        ]
+    lines += [
         "",
         "Runtime and CPU time are proxies for energy use; query counts are exact.",
+    ]
+    if energy:
+        lines.append(
+            f"Energy and CO₂ are estimates from codecarbon {energy['codecarbon']} in offline mode: CPU load × typical "
+            f"power of the {energy['cpu_model']}, plus RAM, for the whole machine, not only ShopLite."
+        )
+    lines += [
         "",
         f"Environment: Python {env['python']} on {env['platform']} ({env['cpu_count']} CPUs).",
         "",
@@ -221,12 +273,19 @@ def main():
         sys.exit(f"Python not found at {python}. Set up ShopLite first (see its README) or pass --python.")
 
     print(f"Load test '{args.label}': {args.runs} runs × {args.requests:,} requests, {args.idle:g} s idle window")
+    energy_config = None
+    if args.energy:
+        import codecarbon
+        print("Preparing codecarbon energy estimate...")
+        energy_config = {"codecarbon": codecarbon.__version__, "country": args.country,
+                         "region": args.region, "cpu_model": warm_up_energy_tracker(args)}
     runs = [run_once(args, python, i + 1) for i in range(args.runs)]
 
     result = {
         "label": args.label,
         "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "config": {"requests": args.requests, "runs": args.runs, "idle_s": args.idle, "endpoints": ENDPOINTS},
+        "config": {"requests": args.requests, "runs": args.runs, "idle_s": args.idle, "endpoints": ENDPOINTS,
+                   "energy": energy_config},
         "environment": {
             "git": git_info(args.app_dir),
             "python": subprocess.run([python, "-c", "import platform; print(platform.python_version())"],

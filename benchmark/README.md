@@ -32,6 +32,16 @@ It repeats this 3 times and reports the median. Results go to `results/<label>.j
 
 Options: `--requests`, `--runs`, `--idle`, `--port`. Run `.venv/bin/python loadtest.py --help` for details.
 
+## Energy and CO₂ estimate
+
+By default the load phase is also tracked with [codecarbon](https://github.com/mlco2/codecarbon) in offline mode (no network calls). It reports estimated energy (Wh) and CO₂ (g). Treat both as estimates:
+
+- Without `sudo`, codecarbon can't read real power on a Mac. It multiplies CPU load by the chip's typical power and adds RAM.
+- It measures the whole machine, not only ShopLite, so close other busy apps while measuring. Single runs can vary by 50% or more; the median of 3 helps.
+- CO₂ depends on the electricity grid. The default is `--country USA --region california`; change these to match where you are.
+
+Use `--no-energy` to skip it. Runtime, CPU time and query counts remain the main numbers.
+
 ## Compare before and after
 
 ```bash
