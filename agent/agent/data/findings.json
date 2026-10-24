@@ -1,0 +1,29 @@
+[
+  {
+    "id": "n_plus_one_app",
+    "file": "app.py",
+    "line": 72,
+    "pattern": "n+1_query",
+    "description": "A DB execute() call (via `get_user_total_spent`) at line 73 sits inside a for-loop that starts at line 72. Each loop iteration issues a separate SQL query, producing N+1 round-trips to the database (one to fetch the list, then one per row). With 200 users this is 201 queries per request instead of 1.",
+    "energy_impact": "high",
+    "suggestion": "Replace the loop with a single JOIN query that fetches users and their aggregated order totals in one SQL statement."
+  },
+  {
+    "id": "polling_loop_watch_orders",
+    "file": "app.py",
+    "line": 202,
+    "pattern": "polling_loop",
+    "description": "Function `watch_orders` at line 202 uses a tight `while True: sleep(1)` polling loop that wakes the CPU every second even when there is nothing to do.  Over a 10-second idle window this fires ~10 unnecessary DB queries and burns idle CPU continuously.",
+    "energy_impact": "medium",
+    "suggestion": "Increase the poll interval to 30 s, or replace the pattern with a threading.Event / APScheduler job so the watcher only fires when genuinely needed."
+  },
+  {
+    "id": "recompute_seasonal_demand_index",
+    "file": "app.py",
+    "line": 128,
+    "pattern": "repeated_recomputation",
+    "description": "`seasonal_demand_index` performs a double nested loop (7,680 iterations) and is called once per product row at line 129 with no memoisation. With 50 products and 5 distinct categories the same computation repeats ~40 times unnecessarily.",
+    "energy_impact": "high",
+    "suggestion": "Decorate `seasonal_demand_index` with `@functools.lru_cache(maxsize=None)` or pre-compute a category\u2192index dict before the loop."
+  }
+]
