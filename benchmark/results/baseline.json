@@ -1,0 +1,163 @@
+{
+  "label": "baseline",
+  "timestamp": "2026-10-24T01:44:40+00:00",
+  "config": {
+    "requests": 1000,
+    "runs": 3,
+    "idle_s": 10,
+    "endpoints": [
+      "/users/summary",
+      "/products/report",
+      "/users/<id>"
+    ],
+    "energy": {
+      "codecarbon": "3.3.2",
+      "country": "USA",
+      "region": "california",
+      "cpu_model": "Apple M4"
+    }
+  },
+  "environment": {
+    "git": {
+      "commit": "e83cb07",
+      "uncommitted_changes": false
+    },
+    "python": "3.9.6",
+    "platform": "macOS-26.5.1-arm64-arm-64bit",
+    "cpu_count": 10
+  },
+  "summary": {
+    "runtime_s": 38.50172849977389,
+    "server_cpu_s": 37.608582201,
+    "total_queries": 68207,
+    "request_queries": 68133,
+    "background_queries": 74,
+    "idle_queries": 20,
+    "idle_cpu_s": 0.015418783999997743,
+    "energy_wh": 0.13680489623956565,
+    "co2_g": 0.024496860164805845,
+    "avg_cpu_power_w": 9.738438234860462,
+    "errors": 0,
+    "endpoints": {
+      "/users/summary": {
+        "requests": 334,
+        "queries_per_request": 201.0,
+        "avg_server_ms": 7.600598802395213,
+        "total_queries": 67134
+      },
+      "/products/report": {
+        "requests": 333,
+        "queries_per_request": 1.0,
+        "avg_server_ms": 105.90870870870866,
+        "total_queries": 333
+      },
+      "/users/<id>": {
+        "requests": 333,
+        "queries_per_request": 2.0,
+        "avg_server_ms": 0.35645645645645696,
+        "total_queries": 666
+      }
+    }
+  },
+  "runs": [
+    {
+      "energy_wh": 0.12566427315485618,
+      "co2_g": 0.022501973334315292,
+      "avg_cpu_power_w": 9.079435058356426,
+      "runtime_s": 37.370481042191386,
+      "server_cpu_s": 37.00300953599999,
+      "total_queries": 68205,
+      "request_queries": 68133,
+      "background_queries": 72,
+      "idle_queries": 20,
+      "idle_cpu_s": 0.015418783999997743,
+      "errors": 0,
+      "endpoints": {
+        "/users/summary": {
+          "requests": 334,
+          "queries_per_request": 201.0,
+          "avg_server_ms": 7.473652694610787,
+          "total_queries": 67134
+        },
+        "/products/report": {
+          "requests": 333,
+          "queries_per_request": 1.0,
+          "avg_server_ms": 102.95405405405408,
+          "total_queries": 333
+        },
+        "/users/<id>": {
+          "requests": 333,
+          "queries_per_request": 2.0,
+          "avg_server_ms": 0.25375375375375453,
+          "total_queries": 666
+        }
+      }
+    },
+    {
+      "energy_wh": 0.21750874530166298,
+      "co2_g": 0.03894803084347652,
+      "avg_cpu_power_w": 15.443988318462223,
+      "runtime_s": 41.97913783416152,
+      "server_cpu_s": 38.718557675999996,
+      "total_queries": 68213,
+      "request_queries": 68133,
+      "background_queries": 80,
+      "idle_queries": 20,
+      "idle_cpu_s": 0.01582111999999114,
+      "errors": 0,
+      "endpoints": {
+        "/users/summary": {
+          "requests": 334,
+          "queries_per_request": 201.0,
+          "avg_server_ms": 9.249401197604804,
+          "total_queries": 67134
+        },
+        "/products/report": {
+          "requests": 333,
+          "queries_per_request": 1.0,
+          "avg_server_ms": 113.60000000000005,
+          "total_queries": 333
+        },
+        "/users/<id>": {
+          "requests": 333,
+          "queries_per_request": 2.0,
+          "avg_server_ms": 0.4327327327327317,
+          "total_queries": 666
+        }
+      }
+    },
+    {
+      "energy_wh": 0.13680489623956565,
+      "co2_g": 0.024496860164805845,
+      "avg_cpu_power_w": 9.738438234860462,
+      "runtime_s": 38.50172849977389,
+      "server_cpu_s": 37.608582201,
+      "total_queries": 68207,
+      "request_queries": 68133,
+      "background_queries": 74,
+      "idle_queries": 20,
+      "idle_cpu_s": 0.014382336000004159,
+      "errors": 0,
+      "endpoints": {
+        "/users/summary": {
+          "requests": 334,
+          "queries_per_request": 201.0,
+          "avg_server_ms": 7.600598802395213,
+          "total_queries": 67134
+        },
+        "/products/report": {
+          "requests": 333,
+          "queries_per_request": 1.0,
+          "avg_server_ms": 105.90870870870866,
+          "total_queries": 333
+        },
+        "/users/<id>": {
+          "requests": 333,
+          "queries_per_request": 2.0,
+          "avg_server_ms": 0.35645645645645696,
+          "total_queries": 666
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+
+# GreenCode agent working files
+.greencode_worktree/
+agent/data/.last_thread_id
+agent/data/report.md
+agent/data/report.html
+agent/tests/
+
+# Backend runtime data (projects, findings, uploaded source files)
+backend/data/
+backend/storage/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

@@ -1,0 +1,714 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GreenCode AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EDF0F3; --surface:#FFFFFF; --ink:#16212C; --muted:#5B6877; --line:#D5DBE2;
+  --rail:#17222D; --rail-ink:#E6ECF2; --rail-muted:#8FA0B2; --rail-line:#2A3947;
+  --save:#17805C; --save-bg:#DDF1E8; --waste:#B9710A; --waste-bg:#F8E8CC;
+  --bad:#B3342F; --bad-bg:#F8DCDA; --info:#2B5C8A; --focus:#2F6FED;
+  --ep1:#C98A1E; --ep2:#2B5C8A; --ep3:#8A97A5;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --cond:"IBM Plex Sans Condensed","IBM Plex Sans",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#0F161D; --surface:#17212B; --ink:#E4EAF0; --muted:#93A1B0; --line:#29353F;
+    --rail:#0B1117; --rail-line:#1E2A35;
+    --save:#4CC38F; --save-bg:#12362A; --waste:#E3A13A; --waste-bg:#3A2C12;
+    --bad:#F08A84; --bad-bg:#3F1B19; --info:#7DB2E8; --focus:#7AA5FF;
+    --ep1:#E3A13A; --ep2:#6BA3DB; --ep3:#6F7D8B;
+  }
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.app{display:grid;grid-template-columns:292px 1fr;min-height:100%}
+
+/* rail */
+.rail{background:var(--rail);color:var(--rail-ink);padding:24px 20px;display:flex;flex-direction:column;gap:22px;position:sticky;top:0;height:100vh;overflow:auto}
+.brand{font-family:var(--cond);font-weight:600;font-size:22px;letter-spacing:.2px}
+.brand small{display:block;font:400 13px var(--sans);color:var(--rail-muted);margin-top:2px;letter-spacing:0}
+.field label{display:block;font-size:12.5px;color:var(--rail-muted);margin-bottom:6px}
+.field select{width:100%;background:transparent;border:1px solid var(--rail-line);border-radius:4px;padding:8px 10px;color:var(--rail-ink)}
+.field select option{color:#111}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:9px 16px;border-radius:4px;cursor:pointer;font-weight:500}
+.btn:hover:not(:disabled){border-color:var(--ink)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.primary{background:var(--save);border-color:var(--save);color:#fff}
+.btn.primary:hover:not(:disabled){filter:brightness(1.08);border-color:var(--save)}
+.rail .btn.primary{width:100%;padding:11px 16px}
+.steps{list-style:none;margin:0;padding:0;position:relative}
+.steps li{position:relative;padding:0 0 15px 30px;font-size:14px;color:var(--rail-muted)}
+.steps li:last-child{padding-bottom:0}
+.steps li::before{content:"";position:absolute;left:8px;top:20px;bottom:-2px;width:1px;background:var(--rail-line)}
+.steps li:last-child::before{display:none}
+.steps .dot{position:absolute;left:0;top:3px;width:17px;height:17px;border-radius:50%;border:2px solid var(--rail-line);background:var(--rail)}
+.steps li.done{color:var(--rail-ink)}
+.steps li.done .dot{background:var(--save);border-color:var(--save)}
+.steps li.done .dot::after{content:"";position:absolute;left:4px;top:1px;width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+.steps li.active{color:var(--rail-ink);font-weight:500}
+.steps li.active .dot{border-color:var(--save);animation:pulse 1.4s ease-in-out infinite}
+.steps li.attention{color:var(--rail-ink);font-weight:600}
+.steps li.attention .dot{border-color:var(--ep1);background:var(--ep1)}
+.steps li.error .dot{border-color:var(--bad);background:var(--bad)}
+.steps .tag{display:block;font-size:12.5px;font-weight:400;color:var(--ep1);margin-top:1px}
+@keyframes pulse{50%{box-shadow:0 0 0 5px rgba(23,128,92,.25)}}
+.mode{margin-top:auto;font-size:12.5px;color:var(--rail-muted);border-top:1px solid var(--rail-line);padding-top:14px}
+.mode b{color:var(--rail-ink);font-weight:500}
+.mode button{background:none;border:0;color:var(--rail-ink);text-decoration:underline;cursor:pointer;padding:0;font-size:12.5px}
+
+/* main */
+main{padding:28px 40px 120px;max-width:1040px;width:100%}
+.topline{display:flex;align-items:baseline;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:6px}
+h1{font:600 28px/1.2 var(--cond);margin:0}
+.status{color:var(--muted);font-size:14px}
+.status.attn{color:var(--waste);font-weight:500}
+.status.err{color:var(--bad);font-weight:500}
+.banner{background:var(--waste-bg);color:var(--ink);border-left:3px solid var(--waste);padding:10px 14px;margin:14px 0;font-size:14px}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin:18px 0 26px;overflow-x:auto}
+.tabs button{background:none;border:0;padding:10px 14px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tabs button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--save);font-weight:600}
+.tabs .count{display:inline-block;min-width:20px;padding:0 6px;margin-left:6px;border-radius:10px;background:var(--waste-bg);color:var(--waste);font-size:12px;font-weight:600;text-align:center}
+h2{font:600 20px/1.3 var(--cond);margin:0 0 6px}
+.lede{color:var(--muted);margin:0 0 20px;max-width:64ch}
+.sec{margin-bottom:38px}
+
+/* ledger */
+.ledger-row{margin:0 0 22px}
+.ledger-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;font-size:14px;color:var(--muted)}
+.ledger-head b{font:600 26px var(--cond);color:var(--ink)}
+.bar{display:flex;height:40px;border-radius:3px;overflow:hidden;background:var(--line)}
+.bar.after{height:18px;margin-top:6px}
+.seg{display:flex;align-items:center;padding:0 10px;font-size:12.5px;color:#fff;white-space:nowrap;overflow:hidden;transition:width .6s cubic-bezier(.2,.7,.2,1)}
+.bar-wrap{position:relative}
+.after-label{font-size:13px;color:var(--save);font-weight:500;margin-top:5px}
+.legend{list-style:none;padding:0;margin:4px 0 0;display:flex;flex-wrap:wrap;gap:6px 22px;font-size:13.5px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:7px}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.facts div{padding:14px 16px 14px 0}
+.facts dt{font-size:12.5px;color:var(--muted)}
+.facts dd{margin:2px 0 0;font:600 22px var(--cond)}
+.facts dd small{font:400 12.5px var(--sans);color:var(--muted)}
+.next{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:16px 18px;background:var(--surface);border-left:3px solid var(--save)}
+.next.attn{border-left-color:var(--waste)}
+.next p{margin:0;flex:1;min-width:220px}
+
+/* findings */
+.finding{background:var(--surface);border:1px solid var(--line);border-radius:6px;margin-bottom:12px}
+.finding summary{list-style:none;cursor:pointer;display:flex;gap:14px;align-items:center;padding:14px 18px}
+.finding summary::-webkit-details-marker{display:none}
+.finding .meta{flex:1;min-width:0}
+.finding .title{font-weight:600}
+.finding .where{font:13px var(--mono);color:var(--muted)}
+.finding .body{padding:0 18px 16px;border-top:1px solid var(--line)}
+.finding .body h3{font-size:13px;font-weight:600;margin:14px 0 4px;color:var(--muted)}
+.finding .body p{margin:0;max-width:72ch}
+.chip{display:inline-block;padding:2px 9px;border-radius:10px;font-size:12.5px;font-weight:600}
+.chip.high{background:var(--bad-bg);color:var(--bad)}
+.chip.medium{background:var(--waste-bg);color:var(--waste)}
+.chip.low{background:var(--save-bg);color:var(--save)}
+.chip.status-approved{background:var(--save-bg);color:var(--save)}
+.chip.status-rejected{background:var(--bad-bg);color:var(--bad)}
+.chip.status-open{background:var(--line);color:var(--muted)}
+
+/* review */
+.review{display:grid;grid-template-columns:260px 1fr;gap:28px;align-items:start}
+.plist{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+.plist button{width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:12px 8px 12px 12px;cursor:pointer;border-left:3px solid transparent}
+.plist button[aria-current=true]{background:var(--surface);border-left-color:var(--save)}
+.plist .name{display:block;font-weight:500;font-size:14px;overflow-wrap:anywhere}
+.plist .sub{display:flex;gap:8px;align-items:center;margin-top:4px;font-size:12.5px;color:var(--muted)}
+.pane{min-width:0}
+.pane h3{font:600 18px var(--cond);margin:0 0 4px}
+.pane .rationale{margin:8px 0 16px;max-width:70ch}
+.diff{background:var(--surface);border:1px solid var(--line);border-radius:6px;overflow-x:auto;font:13px/1.55 var(--mono)}
+.dl{white-space:pre;padding:0 14px;min-width:max-content}
+.dl.add{background:var(--save-bg);color:var(--save)}
+.dl.del{background:var(--bad-bg);color:var(--bad)}
+.dl.hunk{background:var(--line);color:var(--muted);padding-top:2px;padding-bottom:2px}
+.dl.file{color:var(--muted);font-weight:500}
+.decide{display:flex;gap:10px;margin:18px 0 10px;flex-wrap:wrap}
+.decide .btn[aria-pressed=true].yes{background:var(--save);border-color:var(--save);color:#fff}
+.decide .btn[aria-pressed=true].no{background:var(--bad);border-color:var(--bad);color:#fff}
+.note label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
+.note input{width:100%;max-width:520px;border:1px solid var(--line);background:var(--surface);border-radius:4px;padding:8px 10px}
+.applybar{position:fixed;left:292px;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:14px 40px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;z-index:5}
+.applybar p{margin:0;flex:1;min-width:200px;font-size:14px}
+
+/* results */
+.rt{width:100%;border-collapse:collapse;font-size:14px}
+.rt th{text-align:left;font-weight:500;color:var(--muted);font-size:13px;padding:8px 14px 8px 0;border-bottom:1px solid var(--line)}
+.rt td{padding:11px 14px 11px 0;border-bottom:1px solid var(--line);vertical-align:middle}
+.rt td.num,.rt th.num{text-align:right;font-variant-numeric:tabular-nums}
+.delta{color:var(--save);font-weight:600}
+.delta.flat{color:var(--muted);font-weight:400}
+.pair{display:flex;flex-direction:column;gap:3px;min-width:140px}
+.pair span{display:block;height:6px;border-radius:2px}
+.pair .b{background:var(--ep3)}
+.pair .a{background:var(--save)}
+.empty{padding:34px 0;color:var(--muted)}
+.empty h2{color:var(--ink)}
+.list{margin:0;padding-left:20px}
+.testline{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:6px 0 24px}
+
+/* report */
+.report{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:22px 28px;max-width:80ch}
+.report h1,.report h2,.report h3{font-family:var(--cond);margin:22px 0 8px}
+.report h1{font-size:24px;margin-top:0}
+.report code{font:13px var(--mono);background:var(--bg);padding:1px 5px;border-radius:3px}
+.report pre{background:var(--bg);padding:12px 14px;overflow-x:auto;border-radius:4px;font:13px/1.5 var(--mono)}
+.report table{border-collapse:collapse;margin:10px 0;font-size:14px}
+.report th,.report td{border:1px solid var(--line);padding:5px 10px;text-align:left}
+.report .wrap{overflow-x:auto}
+
+/* source */
+.form-row{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:18px}
+.form-row label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
+.form-row input,.form-row select{border:1px solid var(--line);background:var(--surface);border-radius:4px;padding:8px 10px}
+.files{list-style:none;margin:0 0 14px;padding:0;border-top:1px solid var(--line)}
+.files button{width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:9px 4px;cursor:pointer;font:13.5px var(--mono)}
+.files button:hover{background:var(--surface)}
+.code{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px 14px;overflow:auto;max-height:420px;font:13px/1.55 var(--mono);white-space:pre}
+.toast{position:fixed;right:20px;top:18px;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:4px;font-size:14px;z-index:20;max-width:360px}
+
+@media (max-width:900px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .rail,main{min-width:0}
+  .review{grid-template-columns:minmax(0,1fr)}
+  .rail{position:static;height:auto;padding:16px}
+  .steps{display:flex;gap:14px;overflow-x:auto;padding-bottom:6px}
+  .steps li{padding:0 0 0 24px;white-space:nowrap}
+  .steps li::before{display:none}
+  .mode{margin-top:0}
+  main{padding:20px 16px 130px}
+  .applybar{left:0;padding:12px 16px}
+}
+@media (prefers-reduced-motion:reduce){
+  .steps li.active .dot{animation:none}
+  .seg{transition:none}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="rail" aria-label="Pipeline">
+    <div class="brand">GreenCode AI<small>Finds energy waste in code and fixes it, with your approval</small></div>
+    <div class="field" id="projectField"></div>
+    <button class="btn primary" id="runBtn" data-action="run">Run audit</button>
+    <ol class="steps" id="steps"></ol>
+    <div class="mode" id="modeNote"></div>
+  </aside>
+  <main>
+    <div class="topline"><h1 id="viewTitle">Overview</h1><div class="status" id="status" role="status" aria-live="polite"></div></div>
+    <div id="banner"></div>
+    <nav class="tabs" id="tabs" role="tablist" aria-label="Sections"></nav>
+    <div id="view"></div>
+  </main>
+</div>
+<div id="applyHost"></div>
+<div id="toastHost" aria-live="polite"></div>
+
+<script>
+const DEMO_FINDINGS = [{"id": "n_plus_one_app", "file": "app.py", "line": 72, "pattern": "n+1_query", "description": "A DB execute() call (via `get_user_total_spent`) at line 73 sits inside a for-loop that starts at line 72. Each loop iteration issues a separate SQL query, producing N+1 round-trips to the database (one to fetch the list, then one per row). With 200 users this is 201 queries per request instead of 1.", "energy_impact": "high", "suggestion": "Replace the loop with a single JOIN query that fetches users and their aggregated order totals in one SQL statement."}, {"id": "polling_loop_watch_orders", "file": "app.py", "line": 202, "pattern": "polling_loop", "description": "Function `watch_orders` at line 202 uses a tight `while True: sleep(1)` polling loop that wakes the CPU every second even when there is nothing to do.  Over a 10-second idle window this fires ~10 unnecessary DB queries and burns idle CPU continuously.", "energy_impact": "medium", "suggestion": "Increase the poll interval to 30 s, or replace the pattern with a threading.Event / APScheduler job so the watcher only fires when genuinely needed."}, {"id": "recompute_seasonal_demand_index", "file": "app.py", "line": 128, "pattern": "repeated_recomputation", "description": "`seasonal_demand_index` performs a double nested loop (7,680 iterations) and is called once per product row at line 129 with no memoisation. With 50 products and 5 distinct categories the same computation repeats ~40 times unnecessarily.", "energy_impact": "high", "suggestion": "Decorate `seasonal_demand_index` with `@functools.lru_cache(maxsize=None)` or pre-compute a category\u2192index dict before the loop."}];
+const DEMO_PROPOSALS = [{"finding_id": "n_plus_one_app", "patch": "--- a/app.py\n+++ b/app.py\n@@ -58,18 +58,22 @@\n-def get_user_total_spent(db, user_id):\n-    row = db.execute(\n-        \"SELECT COALESCE(SUM(amount), 0) AS total, COUNT(*) AS n FROM orders WHERE user_id = ?\",\n-        (user_id,),\n-    ).fetchone()\n-    return round(row[\"total\"], 2), row[\"n\"]\n-\n-\n @app.get(\"/users/summary\")\n def users_summary():\n     db = get_db()\n-    users = db.execute(\"SELECT id, name, email FROM users ORDER BY id\").fetchall()\n-\n-    summary = []\n-    for user in users:\n-        total_spent, order_count = get_user_total_spent(db, user[\"id\"])\n-        summary.append({\n-            \"id\": user[\"id\"],\n-            \"name\": user[\"name\"],\n-            \"email\": user[\"email\"],\n-            \"order_count\": order_count,\n-            \"total_spent\": total_spent,\n-        })\n+    rows = db.execute(\n+        \"\"\"SELECT u.id, u.name, u.email,\n+                  COUNT(o.id)                    AS order_count,\n+                  ROUND(COALESCE(SUM(o.amount), 0), 2) AS total_spent\n+           FROM users u\n+           LEFT JOIN orders o ON o.user_id = u.id\n+           GROUP BY u.id\n+           ORDER BY u.id\"\"\"\n+    ).fetchall()\n+    summary = [\n+        {\n+            \"id\": r[\"id\"],\n+            \"name\": r[\"name\"],\n+            \"email\": r[\"email\"],\n+            \"order_count\": r[\"order_count\"],\n+            \"total_spent\": r[\"total_spent\"],\n+        }\n+        for r in rows\n+    ]\n     return jsonify(summary)\n", "rationale": "Replace 201 per-request DB round-trips with a single LEFT JOIN + GROUP BY aggregation. The original code calls get_user_total_spent() once for each of the 200 users, each call executing one SQL SELECT. The fix issues exactly one query regardless of how many users exist."}, {"finding_id": "polling_loop_watch_orders", "patch": "--- a/app.py\n+++ b/app.py\n@@ -202,7 +202,7 @@\n def watch_orders():\n     while True:\n-        time.sleep(1)\n+        time.sleep(30)\n         check_orders()\n", "rationale": "Increase the watch_orders() sleep interval from 1 s to 30 s. The /status endpoint serves cached data; 1-second resolution adds no observable value but fires ~20 unnecessary DB queries per 10-second idle window and keeps a CPU timer ticking continuously."}, {"finding_id": "recompute_seasonal_demand_index", "patch": "--- a/app.py\n+++ b/app.py\n@@ -1,7 +1,8 @@\n import math\n+import functools\n import os\n import threading\n import time\n from datetime import datetime\n \n from flask import Flask, g, jsonify, request\n@@ -104,6 +105,7 @@\n \n+@functools.lru_cache(maxsize=None)\n def seasonal_demand_index(category):\n     \"\"\"Demand multiplier for a category over the Q4 peak season (15-minute resolution).\"\"\"\n     phase = sum(ord(c) for c in category) % 365\n", "rationale": "Add @functools.lru_cache(maxsize=None) to seasonal_demand_index(). ShopLite has 5 distinct product categories, so the cache is warm after the first 5 calls. Subsequent calls in the same process return instantly instead of executing 7,680 floating-point iterations."}];
+const DEMO_BASELINE = {"label": "baseline", "timestamp": "2026-10-24T01:44:40+00:00", "summary": {"runtime_s": 38.50172849977389, "server_cpu_s": 37.608582201, "total_queries": 68207, "request_queries": 68133, "background_queries": 74, "idle_queries": 20, "idle_cpu_s": 0.015418783999997743, "energy_wh": 0.13680489623956565, "co2_g": 0.024496860164805845, "avg_cpu_power_w": 9.738438234860462, "errors": 0, "endpoints": {"/users/summary": {"requests": 334, "queries_per_request": 201.0, "avg_server_ms": 7.600598802395213, "total_queries": 67134}, "/products/report": {"requests": 333, "queries_per_request": 1.0, "avg_server_ms": 105.90870870870866, "total_queries": 333}, "/users/<id>": {"requests": 333, "queries_per_request": 2.0, "avg_server_ms": 0.35645645645645696, "total_queries": 666}}}};
+
+const API = (location.protocol === 'file:' || location.port !== '5050') ? 'http://localhost:5050' : '';
+const PIPELINE = ['detect','protect','propose','human_approval','apply','verify','measure','report'];
+const STEP_LABEL = {
+  detect:'Find waste', protect:'Write safety tests', propose:'Draft fixes', human_approval:'Your review',
+  apply:'Apply fixes', verify:'Re-run tests', measure:'Measure energy', report:'Write report'
+};
+const EP_COLORS = ['var(--ep1)','var(--ep2)','var(--ep3)'];
+
+const S = {
+  mode:'live', // 'live' | 'demo'
+  view:'overview',
+  run:{status:'idle',completed:[],findings:[],proposals:[],decisions:[],applied:[],skipped:[],error:null,post_apply_tests:null},
+  bench:{baseline:null,after:null},
+  report:null,
+  verdicts:{},   // finding_id -> {approved:true|false|null, note:''}
+  selected:null,
+  projects:[], projectId:null,
+  files:[], openFile:null,
+  demoNote:false
+};
+let pollTimer = null;
+
+/* ---------- helpers ---------- */
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const int = n => Math.round(n).toLocaleString('en-US');
+const dec = (n, d) => Number(n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+const pct = (a, b) => b ? Math.round((1 - a / b) * 100) : 0;
+function toast(msg){
+  const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
+  $('toastHost').appendChild(t); setTimeout(() => t.remove(), 4200);
+}
+async function api(path, opts = {}, timeout = 8000){
+  const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), timeout);
+  try{
+    const res = await fetch(API + path, {...opts, signal: ctl.signal,
+      headers:{'Content-Type':'application/json', ...(opts.headers||{})}});
+    const data = await res.json().catch(() => ({}));
+    if(!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+    return data;
+  } finally { clearTimeout(to); }
+}
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+/* ---------- derived data ---------- */
+function endpointRows(summary, key){
+  // returns [{name, value}] for 'queries' or 'cpu'
+  const eps = summary?.endpoints || {};
+  return Object.entries(eps).map(([name, e]) => ({
+    name,
+    value: key === 'queries' ? e.total_queries : (e.avg_server_ms * e.requests) / 1000
+  }));
+}
+function statusText(){
+  const r = S.run, n = r.proposals.length;
+  switch(r.status){
+    case 'idle': return 'No run yet. Start an audit to find energy waste.';
+    case 'running': {
+      const next = PIPELINE.find(p => !r.completed.includes(p) && p !== 'human_approval');
+      return `Running: ${STEP_LABEL[next] || 'finishing up'}…`;
+    }
+    case 'awaiting_approval': return `Waiting for your review: ${n} proposed fix${n===1?'':'es'}`;
+    case 'applying': {
+      const next = PIPELINE.find(p => !r.completed.includes(p));
+      return `Applying your decisions: ${STEP_LABEL[next] || 'finishing up'}…`;
+    }
+    case 'done': return 'Run finished. Report is ready.';
+    case 'error': return `Run failed: ${r.error}`;
+  }
+  return '';
+}
+function stepState(node){
+  const r = S.run;
+  if(r.completed.includes(node)) return 'done';
+  if(r.status === 'awaiting_approval' && node === 'human_approval') return 'attention';
+  const firstOpen = PIPELINE.find(p => !r.completed.includes(p));
+  if(r.status === 'error' && node === firstOpen) return 'error';
+  if((r.status === 'running' || r.status === 'applying') && node === firstOpen) return 'active';
+  return '';
+}
+
+/* ---------- rendering ---------- */
+function renderRail(){
+  $('steps').innerHTML = PIPELINE.map(p => {
+    const st = stepState(p);
+    const tag = st === 'attention' ? '<span class="tag">Needs you</span>' : '';
+    return `<li class="${st}"${st==='active'?' aria-current="step"':''}><span class="dot"></span>${esc(STEP_LABEL[p])}${tag}</li>`;
+  }).join('');
+  const busy = ['running','applying'].includes(S.run.status);
+  const btn = $('runBtn');
+  btn.disabled = busy || S.run.status === 'awaiting_approval';
+  btn.textContent = S.run.status === 'done' || S.run.status === 'error' ? 'Run audit again' : 'Run audit';
+
+  $('projectField').innerHTML = S.mode === 'live' && S.projects.length
+    ? `<label for="projectSel">Project</label><select id="projectSel">${S.projects.map(p =>
+        `<option value="${esc(p.id)}"${p.id===S.projectId?' selected':''}>${esc(p.name)}</option>`).join('')}</select>`
+    : `<label>Target</label><div style="font-size:14px">ShopLite demo store</div>`;
+
+  $('modeNote').innerHTML = S.mode === 'demo'
+    ? `<b>Demo data.</b> The backend at ${esc(API || location.origin)} did not respond. <button data-action="retry">Try again</button>`
+    : `<b>Connected</b> to ${esc(API || location.origin)}`;
+}
+function renderStatus(){
+  const el = $('status');
+  el.textContent = statusText();
+  el.className = 'status' + (S.run.status === 'awaiting_approval' ? ' attn' : S.run.status === 'error' ? ' err' : '');
+  $('banner').innerHTML = S.demoNote
+    ? `<div class="banner"><b>Demo mode.</b> Findings, patches and baseline numbers come from the repo. The “after” numbers are sample values to show the layout; they are not measured. Start the backend (<code>python backend/app.py</code>) to use real results.</div>` : '';
+}
+function renderTabs(){
+  const open = S.run.proposals.length && S.run.status === 'awaiting_approval';
+  const tabs = [
+    ['overview','Overview'], ['findings','Findings'], ['review','Review'],
+    ['results','Results'], ['report','Report'], ['source','Source files']
+  ];
+  $('tabs').innerHTML = tabs.map(([id, label]) =>
+    `<button role="tab" data-view="${id}" aria-selected="${S.view===id}">${label}${id==='review' && open ? `<span class="count">${S.run.proposals.length}</span>` : ''}</button>`).join('');
+  $('viewTitle').textContent = tabs.find(t => t[0] === S.view)[1];
+}
+
+function barHtml(rows, total, widthPct, cls){
+  const segs = rows.map((r, i) => {
+    const w = total ? (r.value / total) * widthPct : 0;
+    const label = (w >= 14 && !cls) ? `${esc(r.name)} ${Math.round(r.value / total * 100)}%` : '';
+    return `<div class="seg" style="width:${w}%;background:${EP_COLORS[i % 3]}" title="${esc(r.name)}: ${int(r.value)}">${label}</div>`;
+  }).join('');
+  return `<div class="bar ${cls||''}" role="img" aria-label="${esc(rows.map(r => `${r.name} ${int(r.value)}`).join(', '))}">${segs}</div>`;
+}
+function ledgerRow(title, total, unit, before, after, fmt){
+  const bTotal = before.reduce((s, r) => s + r.value, 0);
+  const aTotal = after ? after.reduce((s, r) => s + r.value, 0) : null;
+  let html = `<div class="ledger-row"><div class="ledger-head"><span>${esc(title)}</span><b>${fmt(bTotal)} ${esc(unit)}</b></div>`;
+  html += barHtml(before, bTotal, 100);
+  if(after){
+    const w = Math.max((aTotal / bTotal) * 100, 0.6);
+    html += barHtml(after, aTotal, w, 'after');
+    html += `<div class="after-label">After fixes: ${fmt(aTotal)} ${esc(unit)} (${pct(aTotal, bTotal)}% less)</div>`;
+  }
+  return html + '</div>';
+}
+
+function viewOverview(){
+  const base = S.bench.baseline?.summary, aft = S.bench.after?.summary;
+  if(!base) return `<div class="empty"><h2>No baseline recorded yet</h2><p>Run the benchmark in <code>benchmark/</code> to record a baseline, then come back.</p></div>`;
+  const reqs = Object.values(base.endpoints).reduce((s, e) => s + e.requests, 0);
+  const q = endpointRows(base, 'queries'), c = endpointRows(base, 'cpu');
+  const qa = aft ? endpointRows(aft, 'queries') : null, ca = aft ? endpointRows(aft, 'cpu') : null;
+  const hot = [...q].sort((a, b) => b.value - a.value)[0], hotCpu = [...c].sort((a, b) => b.value - a.value)[0];
+  const qTotal = q.reduce((s, r) => s + r.value, 0), cTotal = c.reduce((s, r) => s + r.value, 0);
+
+  let html = `<section class="sec"><h2>Where ShopLite spends its energy</h2>
+    <p class="lede">${int(reqs)} requests split across three endpoints. One endpoint causes ${Math.round(hot.value/qTotal*100)}% of the database queries, and a different one causes ${Math.round(hotCpu.value/cTotal*100)}% of the server time. That is where the three findings point.</p>`;
+  html += ledgerRow('Database queries from requests', qTotal, 'queries', q, qa, int);
+  html += ledgerRow('Server CPU time', cTotal, 's', c, ca, v => dec(v, 1));
+  html += `<ul class="legend">${q.map((r, i) => `<li><i style="background:${EP_COLORS[i%3]}"></i><code>${esc(r.name)}</code></li>`).join('')}</ul></section>`;
+
+  html += `<section class="sec"><dl class="facts">
+    <div><dt>Run time</dt><dd>${dec(base.runtime_s,1)} s</dd></div>
+    <div><dt>Idle queries in 10 s</dt><dd>${int(base.idle_queries)}</dd></div>
+    <div><dt>Estimated energy</dt><dd>${dec(base.energy_wh,3)} <small>Wh</small></dd></div>
+    <div><dt>Estimated CO₂</dt><dd>${dec(base.co2_g,3)} <small>g</small></dd></div>
+  </dl><p class="lede" style="margin-top:8px;font-size:13px">Baseline recorded ${esc((S.bench.baseline.timestamp||'').slice(0,10))}. Energy and CO₂ are estimates for the whole machine, not only ShopLite.</p></section>`;
+
+  const r = S.run;
+  if(r.status === 'awaiting_approval')
+    html += `<div class="next attn"><p><b>${r.proposals.length} fixes are ready.</b> Nothing changes in the code until you approve.</p><button class="btn primary" data-view="review">Review fixes</button></div>`;
+  else if(r.status === 'done')
+    html += `<div class="next"><p><b>Run finished.</b> ${r.applied.length} fix${r.applied.length===1?'':'es'} applied, ${r.skipped.length} skipped.</p><button class="btn" data-view="results">See results</button></div>`;
+  else if(r.status === 'idle')
+    html += `<div class="next"><p>Start an audit to detect waste and draft fixes. The agent pauses so you can review every change.</p><button class="btn primary" data-action="run">Run audit</button></div>`;
+  return html;
+}
+
+function viewFindings(){
+  const fs = S.run.findings;
+  if(!fs.length) return `<div class="empty"><h2>No findings yet</h2><p>Run an audit and the agent will list each energy-wasting pattern it finds, with file and line.</p><button class="btn primary" data-action="run" ${['running','applying'].includes(S.run.status)?'disabled':''}>Run audit</button></div>`;
+  const order = {high:0, medium:1, low:2};
+  return [...fs].sort((a, b) => order[a.energy_impact] - order[b.energy_impact]).map(f => {
+    const v = S.verdicts[f.id]?.approved;
+    const chip = v === true ? '<span class="chip status-approved">Approved</span>' : v === false ? '<span class="chip status-rejected">Rejected</span>' : '';
+    const patternName = {'n+1_query':'N+1 database queries','polling_loop':'Polling loop','repeated_recomputation':'Repeated computation'}[f.pattern] || f.pattern;
+    return `<details class="finding"><summary><span class="chip ${esc(f.energy_impact)}">${esc(f.energy_impact)} impact</span>
+      <span class="meta"><span class="title">${esc(patternName)}</span><br><span class="where">${esc(f.file)}:${esc(f.line ?? '?')}</span></span>${chip}</summary>
+      <div class="body"><h3>What is wrong</h3><p>${esc(f.description)}</p><h3>Suggested fix</h3><p>${esc(f.suggestion)}</p></div></details>`;
+  }).join('');
+}
+
+function viewReview(){
+  const r = S.run, ps = r.proposals;
+  if(!ps.length) return `<div class="empty"><h2>Nothing to review yet</h2><p>Fixes appear here after the agent has found waste and drafted patches. You approve or reject each one before any code changes.</p></div>`;
+  if(!S.selected || !ps.find(p => p.finding_id === S.selected)) S.selected = ps[0].finding_id;
+  const locked = r.status !== 'awaiting_approval';
+  const cur = ps.find(p => p.finding_id === S.selected), f = r.findings.find(x => x.id === cur.finding_id) || {};
+  const v = S.verdicts[cur.finding_id] || {approved:null, note:''};
+  const list = ps.map(p => {
+    const fv = S.verdicts[p.finding_id]?.approved;
+    const chip = fv === true ? '<span class="chip status-approved">Approved</span>' : fv === false ? '<span class="chip status-rejected">Rejected</span>' : '<span class="chip status-open">Undecided</span>';
+    const ff = r.findings.find(x => x.id === p.finding_id) || {};
+    return `<li><button data-select="${esc(p.finding_id)}" aria-current="${p.finding_id===S.selected}"><span class="name">${esc(p.finding_id)}</span><span class="sub">${chip} ${esc(ff.energy_impact||'')}</span></button></li>`;
+  }).join('');
+  const diff = cur.patch.split('\n').map(l => {
+    const c = /^(\+\+\+|---)/.test(l) ? 'file' : l.startsWith('@@') ? 'hunk' : l.startsWith('+') ? 'add' : l.startsWith('-') ? 'del' : '';
+    return `<div class="dl ${c}">${esc(l) || ' '}</div>`;
+  }).join('');
+  return `<div class="review"><ul class="plist" aria-label="Proposed fixes">${list}</ul>
+    <div class="pane"><h3>${esc(cur.finding_id)}</h3>
+      <div class="where" style="font:13px var(--mono);color:var(--muted)">${esc(f.file||'')}${f.line?':'+esc(f.line):''}</div>
+      <p class="rationale">${esc(cur.rationale)}</p>
+      <div class="diff" tabindex="0" aria-label="Proposed patch">${diff}</div>
+      <div class="decide">
+        <button class="btn yes" data-decide="true" aria-pressed="${v.approved===true}" ${locked?'disabled':''}>Approve this fix</button>
+        <button class="btn no" data-decide="false" aria-pressed="${v.approved===false}" ${locked?'disabled':''}>Reject this fix</button>
+      </div>
+      <div class="note"><label for="noteInput">Note for the report (optional)</label>
+        <input id="noteInput" value="${esc(v.note)}" ${locked?'disabled':''} maxlength="500"></div>
+    </div></div>`;
+}
+function renderApplyBar(){
+  const r = S.run, host = $('applyHost');
+  if(S.view !== 'review' || r.status !== 'awaiting_approval'){ host.innerHTML = ''; return; }
+  const vals = r.proposals.map(p => S.verdicts[p.finding_id]?.approved);
+  const yes = vals.filter(v => v === true).length, no = vals.filter(v => v === false).length, open = vals.length - yes - no;
+  host.innerHTML = `<div class="applybar"><p><b>${yes}</b> approved, <b>${no}</b> rejected${open ? `, <b>${open}</b> undecided (will be skipped)` : ''}.
+    The agent then applies approved fixes in a separate worktree, re-runs the tests and measures the difference.</p>
+    <button class="btn" data-action="approveAll">Approve all</button>
+    <button class="btn primary" data-action="submit">${yes ? `Apply ${yes} approved fix${yes===1?'':'es'}` : 'Finish without applying'}</button></div>`;
+}
+
+function viewResults(){
+  const b = S.bench.baseline?.summary, a = S.bench.after?.summary, r = S.run;
+  if(!b) return `<div class="empty"><h2>No baseline yet</h2><p>Record one with <code>python loadtest.py --label baseline</code> in <code>benchmark/</code>.</p></div>`;
+  if(!a){
+    const msg = r.status === 'done'
+      ? 'The run finished without an after measurement. This happens when every fix was rejected or the tests failed after patching.'
+      : 'After numbers appear once you approve fixes and the agent finishes measuring. That step takes a couple of minutes.';
+    return `<div class="empty"><h2>No after measurement yet</h2><p>${msg}</p>${r.status==='awaiting_approval'?'<button class="btn primary" data-view="review">Review fixes</button>':''}</div>${testsAndApplied()}`;
+  }
+  const M = [
+    ['Database queries','total_queries',int],['Idle queries in 10 s','idle_queries',int],
+    ['Server CPU time (s)','server_cpu_s',v=>dec(v,1)],['Run time (s)','runtime_s',v=>dec(v,1)],
+    ['Estimated energy (Wh)','energy_wh',v=>dec(v,3)],['Estimated CO₂ (g)','co2_g',v=>dec(v,4)]
+  ];
+  const rows = M.map(([label,k,fmt]) => {
+    const bv = b[k], av = a[k];
+    if(bv == null || av == null) return '';
+    const d = pct(av, bv), w = bv ? Math.max(av / bv * 100, 1.5) : 0;
+    return `<tr><td>${label}</td><td class="num">${fmt(bv)}</td><td class="num">${fmt(av)}</td>
+      <td class="num"><span class="delta ${d<=0?'flat':''}">${d>0?'−'+d+'%':d<0?'+'+Math.abs(d)+'%':'no change'}</span></td>
+      <td><div class="pair"><span class="b" style="width:100%"></span><span class="a" style="width:${w}%"></span></div></td></tr>`;
+  }).join('');
+  const eps = Object.keys(b.endpoints).map(n => {
+    const x = b.endpoints[n], y = a.endpoints?.[n];
+    return `<tr><td><code>${esc(n)}</code></td><td class="num">${dec(x.queries_per_request,1)}</td><td class="num">${y?dec(y.queries_per_request,1):'–'}</td>
+      <td class="num">${dec(x.avg_server_ms,1)}</td><td class="num">${y?dec(y.avg_server_ms,1):'–'}</td></tr>`;
+  }).join('');
+  return `<section class="sec"><h2>Before and after</h2><p class="lede">Same load test, same machine, before and after the approved fixes. Query counts are exact; time and energy are estimates.</p>
+    <table class="rt"><thead><tr><th>Metric</th><th class="num">Before</th><th class="num">After</th><th class="num">Change</th><th><span style="visibility:hidden">bar</span></th></tr></thead><tbody>${rows}</tbody></table></section>
+    <section class="sec"><h2>By endpoint</h2><table class="rt"><thead><tr><th>Endpoint</th><th class="num">Queries/request before</th><th class="num">after</th><th class="num">Avg server ms before</th><th class="num">after</th></tr></thead><tbody>${eps}</tbody></table></section>
+    ${testsAndApplied()}`;
+}
+function testsAndApplied(){
+  const r = S.run, t = r.post_apply_tests;
+  if(!t && !r.applied.length && !r.skipped.length) return '';
+  let h = '<section class="sec"><h2>What was changed</h2>';
+  if(t){
+    const ok = !t.failed && !t.errors;
+    h += `<div class="testline"><span class="chip ${ok?'status-approved':'status-rejected'}">${ok?'Tests passed':'Tests failed'}</span><span>${t.passed} passed, ${t.failed} failed, ${t.errors} errors after patching</span></div>`;
+  }
+  if(r.applied.length) h += `<p style="margin:0 0 6px"><b>Applied</b></p><ul class="list">${r.applied.map(x=>`<li><code>${esc(x)}</code></li>`).join('')}</ul>`;
+  if(r.skipped.length) h += `<p style="margin:14px 0 6px"><b>Skipped</b></p><ul class="list">${r.skipped.map(x=>`<li><code>${esc(x)}</code></li>`).join('')}</ul>`;
+  return h + '</section>';
+}
+
+function mdToHtml(src){
+  const lines = esc(src).split('\n'); let out = '', code = false, list = false, tbl = [];
+  const inl = t => t.replace(/`([^`]+)`/g,'<code>$1</code>').replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
+  const endList = () => { if(list){ out += '</ul>'; list = false; } };
+  const endTbl = () => {
+    if(!tbl.length) return;
+    const rows = tbl.filter(r => !/^\|[\s:|-]+\|?$/.test(r)).map(r => r.replace(/^\||\|$/g,'').split('|').map(c => inl(c.trim())));
+    out += '<div class="wrap"><table>' + rows.map((r, i) => `<tr>${r.map(c => i ? `<td>${c}</td>` : `<th>${c}</th>`).join('')}</tr>`).join('') + '</table></div>';
+    tbl = [];
+  };
+  for(const l of lines){
+    if(l.startsWith('```')){ endList(); endTbl(); out += code ? '</pre>' : '<pre>'; code = !code; continue; }
+    if(code){ out += l + '\n'; continue; }
+    if(l.startsWith('|')){ endList(); tbl.push(l); continue; } else endTbl();
+    const h = l.match(/^(#{1,3})\s+(.*)/);
+    if(h){ endList(); out += `<h${h[1].length}>${inl(h[2])}</h${h[1].length}>`; continue; }
+    const li = l.match(/^\s*[-*]\s+(.*)/);
+    if(li){ if(!list){ out += '<ul class="list">'; list = true; } out += `<li>${inl(li[1])}</li>`; continue; }
+    endList();
+    if(l.trim()) out += `<p>${inl(l)}</p>`;
+  }
+  endList(); endTbl(); if(code) out += '</pre>';
+  return out;
+}
+function viewReport(){
+  if(!S.report) return `<div class="empty"><h2>No report yet</h2><p>The agent writes a report after each run. It lists every finding, your decisions and the measured savings.</p></div>`;
+  return `<article class="report">${mdToHtml(S.report)}</article>`;
+}
+
+function viewSource(){
+  if(S.mode === 'demo') return `<div class="empty"><h2>Source files need the backend</h2><p>Register a project and upload Python files for auditing once the backend is running.</p></div>`;
+  const projOpts = S.projects.map(p => `<option value="${esc(p.id)}"${p.id===S.projectId?' selected':''}>${esc(p.name)}</option>`).join('');
+  return `<section class="sec"><h2>Projects</h2><p class="lede">Register a project, then upload the Python files you want audited.</p>
+    <div class="form-row"><div><label for="pName">Project name</label><input id="pName" placeholder="my-service"></div>
+    <div><label for="pLang">Language</label><select id="pLang"><option>python</option></select></div>
+    <button class="btn primary" data-action="createProject">Register project</button></div>
+    ${S.projects.length ? `<div class="form-row"><div><label for="srcProject">Upload to</label><select id="srcProject">${projOpts}</select></div>
+    <div><label for="fileInput">Python files</label><input id="fileInput" type="file" accept=".py" multiple></div>
+    <button class="btn" data-action="upload">Upload</button></div>` : ''}
+    </section>
+    <section class="sec"><h2>Uploaded files</h2>
+    ${S.files.length ? `<ul class="files">${S.files.map(f => `<li><button data-file="${esc(f)}">${esc(f)}</button></li>`).join('')}</ul>` : '<p class="lede">No files uploaded for this project yet.</p>'}
+    ${S.openFile ? `<div class="code" tabindex="0">${esc(S.openFile.content)}</div>` : ''}</section>`;
+}
+
+function renderView(keepScroll){
+  const views = {overview:viewOverview, findings:viewFindings, review:viewReview, results:viewResults, report:viewReport, source:viewSource};
+  $('view').innerHTML = views[S.view]();
+  renderApplyBar();
+}
+function render(){ renderRail(); renderStatus(); renderTabs(); renderView(); }
+
+/* ---------- live backend ---------- */
+async function loadLive(){
+  const [st, bench] = await Promise.all([api('/api/agent/status'), api('/api/benchmark').catch(() => ({}))]);
+  S.run = {...S.run, ...st};
+  S.bench = {baseline: bench.baseline || null, after: bench.after || null};
+  st.proposals.forEach(p => { if(!S.verdicts[p.finding_id]) S.verdicts[p.finding_id] = {approved:null, note:''}; });
+  if(st.status === 'done' || st.report_available){
+    S.report = (await api('/api/agent/report').catch(() => ({}))).markdown || S.report;
+  }
+}
+async function loadProjects(){
+  try{ const d = await api('/api/projects'); S.projects = Array.isArray(d) ? d : (d.projects || []);
+    if(!S.projectId && S.projects[0]) S.projectId = S.projects[0].id; }catch{ S.projects = []; }
+}
+async function loadFiles(){
+  if(!S.projectId){ S.files = []; return; }
+  try{ S.files = (await api(`/api/projects/${S.projectId}/files`)).files || []; }catch{ S.files = []; }
+}
+function startPolling(){
+  stopPolling();
+  pollTimer = setInterval(async () => {
+    try{ await loadLive(); render(); if(!['running','applying'].includes(S.run.status)) stopPolling(); }
+    catch(e){ stopPolling(); toast('Lost connection to the backend'); }
+  }, 1500);
+}
+function stopPolling(){ if(pollTimer){ clearInterval(pollTimer); pollTimer = null; } }
+
+/* ---------- demo simulation ---------- */
+function sampleAfter(){
+  const b = DEMO_BASELINE.summary;
+  return {label:'after', timestamp:new Date().toISOString(), summary:{
+    runtime_s:8.4, server_cpu_s:3.2, total_queries:1333, request_queries:1333, background_queries:0, idle_queries:0,
+    energy_wh:0.021, co2_g:0.0038, errors:0,
+    endpoints:{
+      '/users/summary':{requests:334,queries_per_request:1.0,avg_server_ms:2.1,total_queries:334},
+      '/products/report':{requests:333,queries_per_request:1.0,avg_server_ms:2.2,total_queries:333},
+      '/users/<id>':{requests:333,queries_per_request:2.0,avg_server_ms:0.4,total_queries:666}
+    }}};
+}
+async function demoRun(){
+  S.run = {status:'running',completed:[],findings:[],proposals:[],decisions:[],applied:[],skipped:[],error:null,post_apply_tests:null};
+  S.verdicts = {}; S.report = null; S.bench.after = null; render();
+  for(const step of ['detect','protect','propose']){
+    await sleep(900); S.run.completed.push(step);
+    if(step === 'detect') S.run.findings = DEMO_FINDINGS;
+    render();
+  }
+  S.run.proposals = DEMO_PROPOSALS;
+  DEMO_PROPOSALS.forEach(p => S.verdicts[p.finding_id] = {approved:null, note:''});
+  S.run.status = 'awaiting_approval'; S.view = 'review'; render();
+}
+async function demoResume(decisions){
+  S.run.status = 'applying'; S.run.decisions = decisions; S.run.completed.push('human_approval');
+  S.run.applied = decisions.filter(d => d.approved).map(d => d.finding_id);
+  S.run.skipped = decisions.filter(d => !d.approved).map(d => d.finding_id);
+  render();
+  const anyApproved = S.run.applied.length > 0;
+  const steps = anyApproved ? ['apply','verify','measure','report'] : ['report'];
+  for(const step of steps){
+    await sleep(900); S.run.completed.push(step);
+    if(step === 'verify') S.run.post_apply_tests = {passed:6, failed:0, errors:0, output:''};
+    if(step === 'measure') S.bench.after = sampleAfter();
+    render();
+  }
+  S.report = demoReport(decisions);
+  S.run.status = 'done'; render();
+}
+function demoReport(ds){
+  const lines = ['# GreenCode report (sample)', '', 'This report is generated in demo mode. The real report comes from the agent.', '', '## Decisions', '',
+    '| Finding | Decision | Note |', '| --- | --- | --- |',
+    ...ds.map(d => `| \`${d.finding_id}\` | ${d.approved ? 'Approved' : 'Rejected'} | ${d.note || ''} |`)];
+  return lines.join('\n');
+}
+
+/* ---------- actions ---------- */
+async function doRun(){
+  S.view = 'overview';
+  if(S.mode === 'demo') return demoRun();
+  try{
+    await api('/api/agent/run', {method:'POST', body:JSON.stringify({})});
+    S.verdicts = {}; S.report = null; await loadLive(); render(); startPolling();
+  }catch(e){ toast(e.message); }
+}
+async function doSubmit(){
+  const ds = S.run.proposals.map(p => {
+    const v = S.verdicts[p.finding_id] || {};
+    return {finding_id:p.finding_id, approved:v.approved === true, note:v.note || (v.approved == null ? 'not reviewed' : '')};
+  });
+  S.view = 'results';
+  if(S.mode === 'demo') return demoResume(ds);
+  try{
+    await api('/api/agent/decisions', {method:'POST', body:JSON.stringify({decisions:ds})});
+    await loadLive(); render(); startPolling();
+  }catch(e){ toast(e.message); S.view = 'review'; render(); }
+}
+async function createProject(){
+  const name = $('pName').value.trim(); if(!name) return toast('Enter a project name');
+  try{
+    const d = await api('/api/projects', {method:'POST', body:JSON.stringify({name, language:$('pLang').value})});
+    await loadProjects(); S.projectId = d.project.id; await loadFiles(); render(); toast('Project registered');
+  }catch(e){ toast(e.message); }
+}
+async function uploadFiles(){
+  const input = $('fileInput'), pid = $('srcProject').value;
+  if(!input.files.length) return toast('Choose at least one .py file');
+  try{
+    for(const f of input.files){
+      await api(`/api/projects/${pid}/files`, {method:'POST', body:JSON.stringify({path:f.name, content:await f.text()})});
+    }
+    S.projectId = pid; await loadFiles(); render(); toast(`Uploaded ${input.files.length} file${input.files.length===1?'':'s'}`);
+  }catch(e){ toast(e.message); }
+}
+async function openFile(name){
+  try{ const d = await api(`/api/projects/${S.projectId}/files/${encodeURI(name)}`); S.openFile = {name, content:d.content}; render(); }
+  catch(e){ toast(e.message); }
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click', async e => {
+  const t = e.target.closest('[data-view],[data-action],[data-select],[data-decide],[data-file]');
+  if(!t) return;
+  if(t.dataset.view){ S.view = t.dataset.view; if(S.view === 'source') await loadFiles(); render(); return; }
+  if(t.dataset.select){ S.selected = t.dataset.select; render(); return; }
+  if(t.dataset.decide){
+    const id = S.selected, v = S.verdicts[id] || (S.verdicts[id] = {approved:null, note:''});
+    const val = t.dataset.decide === 'true'; v.approved = v.approved === val ? null : val; render(); return;
+  }
+  if(t.dataset.file) return openFile(t.dataset.file);
+  switch(t.dataset.action){
+    case 'run': return doRun();
+    case 'submit': return doSubmit();
+    case 'approveAll': S.run.proposals.forEach(p => (S.verdicts[p.finding_id] ||= {note:''}).approved = true); return render();
+    case 'createProject': return createProject();
+    case 'upload': return uploadFiles();
+    case 'retry': return init();
+  }
+});
+document.addEventListener('input', e => {
+  if(e.target.id === 'noteInput' && S.selected) (S.verdicts[S.selected] ||= {approved:null}).note = e.target.value;
+});
+document.addEventListener('change', async e => {
+  if(e.target.id === 'projectSel' || e.target.id === 'srcProject'){ S.projectId = e.target.value; S.openFile = null; await loadFiles(); render(); }
+});
+
+/* ---------- start ---------- */
+async function init(){
+  try{
+    await api('/health', {}, 2500);
+    S.mode = 'live'; S.demoNote = false;
+    await Promise.all([loadLive(), loadProjects()]);
+    await loadFiles();
+    if(['running','applying'].includes(S.run.status)) startPolling();
+    if(S.run.status === 'awaiting_approval') S.view = 'review';
+  }catch(e){
+    S.mode = 'demo'; S.demoNote = true;
+    S.bench.baseline = DEMO_BASELINE;
+    S.run = {...S.run, status:'idle'};
+  }
+  render();
+}
+init();
+</script>
+</body>
+</html>
